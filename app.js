@@ -34,9 +34,22 @@ socket.on('roomFull', () => {
 });
 
 function updateStatus(room) {
-  const isMyTurn = room.turn === mySymbol;
   const statusEl = document.getElementById('status');
   
+  // אם יש מנצח או תיקו
+  if (room.winner) {
+    if (room.winner === 'draw') {
+      statusEl.innerHTML = `<span style="color: #f59e0b;">תיקו! המשחק הסתיים.</span>`;
+    } else if (room.winner === mySymbol) {
+      statusEl.innerHTML = `<span style="color: #22c55e; font-size: 1.3rem;">🎉 ניצחת המשחק!</span>`;
+    } else {
+      statusEl.innerHTML = `<span style="color: #ef4444; font-size: 1.3rem;">הפסדת! ${room.winner} ניצח.</span>`;
+    }
+    return;
+  }
+
+  // המשחק עדיין פעיל
+  const isMyTurn = room.turn === mySymbol;
   if (isMyTurn) {
     statusEl.innerHTML = `<span style="color: #38bdf8;">תורך לשחק!</span> (אתה ${mySymbol})`;
   } else {
