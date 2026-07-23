@@ -21,6 +21,7 @@ socket.on('playerAssigned', (data) => {
 socket.on('gameStart', (room) => {
   updateStatus(room);
   renderBoard(room.board);
+  document.getElementById('chat-box').style.display = 'flex'; // מציג את הצ'אט כשהמשחק מתחיל
 });
 
 socket.on('updateState', (room) => {
@@ -54,7 +55,7 @@ function renderBoard(board) {
     
     if (val) {
       cell.innerText = val;
-      cell.classList.add(val.toLowerCase()); // מוסיף קלאס 'x' או 'o' לעיצוב ולאנימציה
+      cell.classList.add(val.toLowerCase());
     }
     
     cell.onclick = () => {
@@ -64,3 +65,33 @@ function renderBoard(board) {
     boardDiv.appendChild(cell);
   });
 }
+
+// --- לוגיקת הצ'אט ---
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const text = input.value;
+  if (text.trim() !== '') {
+    socket.emit('sendMessage', text);
+    input.value = '';
+  }
+}
+
+function handleKeyPress(e) {
+  if (e.key === 'Enter') {
+    sendMsg();
+  }
+}
+
+// קבלת הודעה מהשרת והצגתה
+socket.on('receiveMessage', (data) => {
+  const messagesDiv = document.getElementById('chat-messages');
+  const msgEl = document.createElement('div');
+  
+  const isMe = data.sender === mySymbol;
+  msgEl.className = `message ${isMe ? 'my-msg' : 'other-msg'}`;
+  msgEl.innerHTML = `<strong>${data.sender}:</strong> ${data.text}`;
+  
+  messagesDiv.appendChild(msgEl);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight; // גלילה אוטומטית להודעה האחרונה
+});
