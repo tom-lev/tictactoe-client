@@ -1,56 +1,62 @@
-// מתחברים לשרת ה-Node.js שרץ אצלנו במחשב בפורט 3000
 const SERVER_URL = "https://my-tictactoe-server.onrender.com"; 
 const socket = io(SERVER_URL);
 
-let mySymbol = null;   // יחזיק את התפקיד שלנו: 'X' או 'O'
+let mySymbol = null;
 let currentRoom = null;
 
-// פונקציה שנפעלת כשהמשתמש לוחץ על כפתור "התחבר"
 function join() {
   const roomInput = document.getElementById('roomId').value;
   if (!roomInput) return alert('נא להכניס שם חדר');
   
   currentRoom = roomInput;
-  // שולחים לשרת אירוע: "אני רוצה להצטרף לחדר X"
   socket.emit('joinRoom', currentRoom);
 }
 
-// א. כשהשרת מודיע איזה תפקיד קיבלנו ('X' או 'O')
 socket.on('playerAssigned', (data) => {
   mySymbol = data.symbol;
-  document.getElementById('status').innerText = `ממתין לשחקן נוסף... אתה שחקן ${mySymbol}`;
-  document.getElementById('setup').style.display = 'none'; // מוסתרים את טופס ההתחברות
+  document.getElementById('status').innerText = `ממתין לשחקן נוסף... (אתה ${mySymbol})`;
+  document.getElementById('setup').style.display = 'none';
 });
 
-// ב. כשהשרת מודיע שהצטרף שחקן שני והמשחק מתחיל
 socket.on('gameStart', (room) => {
-  document.getElementById('status').innerText = `המשחק החל! תור: ${room.turn} (אתה ${mySymbol})`;
+  updateStatus(room);
   renderBoard(room.board);
 });
 
-// ג. כשהשרת שולח עדכון לוח אחרי מהלך
 socket.on('updateState', (room) => {
-  document.getElementById('status').innerText = `תור: ${room.turn} (אתה ${mySymbol})`;
+  updateStatus(room);
   renderBoard(room.board);
 });
 
-// ד. אם החדר כבר מלא (2 שחקנים)
 socket.on('roomFull', () => {
   alert('החדר הזה מלא! נסה שם חדר אחר.');
 });
 
-// פונקציה שמציירת את הלוח על המסך לפי המערך שהגיע מהשרת
+function updateStatus(room) {
+  const isMyTurn = room.turn === mySymbol;
+  const statusEl = document.getElementById('status');
+  
+  if (isMyTurn) {
+    statusEl.innerHTML = `<span style="color: #38bdf8;">תורך לשחק!</span> (אתה ${mySymbol})`;
+  } else {
+    statusEl.innerHTML = `תור היריב (${room.turn})... (אתה ${mySymbol})`;
+  }
+}
+
 function renderBoard(board) {
   const boardDiv = document.getElementById('board');
-  boardDiv.style.display = 'grid'; // מציגים את הלוח
-  boardDiv.innerHTML = '';        // מנקים ציור קודם
+  boardDiv.style.display = 'grid';
+  boardDiv.innerHTML = '';
 
   board.forEach((val, idx) => {
     const cell = document.createElement('div');
     cell.className = 'cell';
-    cell.innerText = val || '';
     
-    // בלחיצה על משבצת - שולחים לשרת אירוע מהלך
+    if (val) {
+      cell.innerText = val;
+      cell.classList.add(val.toLowerCase()); // מוסיף קלאס 'x' או 'o' לעיצוב ולאנימציה
+    }
+    
     cell.onclick = () => {
       socket.emit('makeMove', { index: idx });
     };
