@@ -4,13 +4,32 @@ const socket = io(SERVER_URL);
 let mySymbol = null;
 let currentRoom = null;
 
-function join() {
-  const roomInput = document.getElementById('roomId').value;
+function join(specificRoom) {
+  const roomInput = specificRoom || document.getElementById('roomId').value;
   if (!roomInput) return alert('נא להכניס שם חדר');
   
   currentRoom = roomInput;
   socket.emit('joinRoom', currentRoom);
 }
+
+// עדכון רשימת החדרים הממתינים בלייב
+socket.on('roomsList', (availableRooms) => {
+  const listEl = document.getElementById('rooms-list');
+  listEl.innerHTML = '';
+
+  if (availableRooms.length === 0) {
+    listEl.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">אין חדרים ממתינים כרגע...</div>';
+    return;
+  }
+
+  availableRooms.forEach(roomId => {
+    const item = document.createElement('div');
+    item.className = 'room-item';
+    item.innerHTML = `<span>חדר: ${roomId}</span> <small style="color:#22c55e;">הצטרף 👈</small>`;
+    item.onclick = () => join(roomId);
+    listEl.appendChild(item);
+  });
+});
 
 socket.on('playerAssigned', (data) => {
   mySymbol = data.symbol;
@@ -21,7 +40,7 @@ socket.on('playerAssigned', (data) => {
 socket.on('gameStart', (room) => {
   updateStatus(room);
   renderBoard(room.board);
-  document.getElementById('chat-box').style.display = 'flex'; // מציג את הצ'אט כשהמשחק מתחיל
+  document.getElementById('chat-box').style.display = 'flex';
 });
 
 socket.on('updateState', (room) => {
@@ -36,7 +55,6 @@ socket.on('roomFull', () => {
 function updateStatus(room) {
   const statusEl = document.getElementById('status');
   
-  // אם יש מנצח או תיקו
   if (room.winner) {
     if (room.winner === 'draw') {
       statusEl.innerHTML = `<span style="color: #f59e0b;">תיקו! המשחק הסתיים.</span>`;
@@ -48,7 +66,6 @@ function updateStatus(room) {
     return;
   }
 
-  // המשחק עדיין פעיל
   const isMyTurn = room.turn === mySymbol;
   if (isMyTurn) {
     statusEl.innerHTML = `<span style="color: #38bdf8;">תורך לשחק!</span> (אתה ${mySymbol})`;
@@ -79,8 +96,6 @@ function renderBoard(board) {
   });
 }
 
-// --- לוגיקת הצ'אט ---
-
 function sendMsg() {
   const input = document.getElementById('msgInput');
   const text = input.value;
@@ -96,7 +111,6 @@ function handleKeyPress(e) {
   }
 }
 
-// קבלת הודעה מהשרת והצגתה
 socket.on('receiveMessage', (data) => {
   const messagesDiv = document.getElementById('chat-messages');
   const msgEl = document.createElement('div');
@@ -106,5 +120,5 @@ socket.on('receiveMessage', (data) => {
   msgEl.innerHTML = `<strong>${data.sender}:</strong> ${data.text}`;
   
   messagesDiv.appendChild(msgEl);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight; // גלילה אוטומטית להודעה האחרונה
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
